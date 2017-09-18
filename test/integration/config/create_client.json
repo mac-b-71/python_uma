@@ -1,0 +1,11 @@
+{
+  "enabled":true,
+  "attributes":{},
+  "redirectUris":[],
+  "publicClient": false,
+  "clientId":"<CLIENT_ID>",
+  "secret": "<CLIENT_SECRET>",
+  "protocol":"openid-connect",
+  "authorizationServicesEnabled": true,
+  "serviceAccountsEnabled": true
+}
