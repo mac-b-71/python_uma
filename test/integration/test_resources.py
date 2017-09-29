@@ -2,6 +2,8 @@ import logging
 import unittest
 
 from test.integration.helpers import Keycloak, ClientUtils
+from uma.authentication import ClientCredentialsAuthenticator
+from uma.resource import Resource
 from uma.server import ResourceServer
 
 logging.basicConfig(level=logging.INFO)
@@ -21,9 +23,12 @@ class ResourceRegistrationTestCase(unittest.TestCase):
         self.keycloak.stop()
 
     def test_library_should_be_able_to_create_new_resource(self):
-        server = ResourceServer()
-        resource_id = server.register_resource("resource1")
+        authenticator = ClientCredentialsAuthenticator(self.client_utils.token_endpoint,
+                                                       self.client_utils.id, self.client_utils.secret)
+        server = ResourceServer(authenticator, self.client_utils.authz_endpoint)
+        resource_id = server.register_resource(Resource("resource1", ["view"]))
 
         res = self.client_utils.get_resource(resource_id)
 
-        self.assertTrue('error' not in res)
+        self.assertEqual("resource1", res['name'])
+        self.assertEqual("view", res['scopes'][0]['name'])

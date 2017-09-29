@@ -59,6 +59,9 @@ class ClientUtils:
     def __init__(self):
         self.id = "resource-server"
         self.secret = "508efdf3-63c2-4f0e-9c81-7711673c2f99"
+        self._id = "cc84f1c1-b5f6-491a-bfe0-0f92502f42f2"
+        self.authz_endpoint = "http://localhost:8080/auth/realms/master/authz/protection"
+        self.token_endpoint = "http://localhost:8080/auth/realms/master/protocol/openid-connect/token"
 
     def register(self, token):
         url = "http://localhost:8080/auth/admin/realms/master/clients"
@@ -68,22 +71,25 @@ class ClientUtils:
         }
 
         with open("config/create_client.json") as f:
-            body = f.read().replace("<CLIENT_ID>", self.id).replace("<CLIENT_SECRET>", self.secret)
+            body = f.read().replace("<CLIENT_ID>", self.id).replace("<CLIENT_SECRET>", self.secret)\
+                .replace("<ID>", self._id)
         requests.post(url, data=body, headers=headers)
+        requests.put("http://localhost:8080/auth/admin/realms/master/clients/{}/authz/resource-server".format(self._id),
+                     headers=headers, json={"allowRemoteResourceManagement": True})
         logging.info("Client '{}' registered".format(self.id))
 
     def get_resource(self, resource_id):
         headers = {
             "Authorization": "Bearer {}".format(self.get_client_token()),
         }
-        return requests.get("http://localhost:8080/auth/realms/master/authz/protection/resource_set/{}"
-                            .format(resource_id), headers=headers).json()
+        return requests.get("{}/resource_set/{}"
+                            .format(self.authz_endpoint, resource_id), headers=headers).json()
 
     def get_client_token(self):
         headers = {
             "Content-Type": "application/x-www-form-urlencoded"
         }
         body = "grant_type=client_credentials&client_id={}&client_secret={}".format(self.id, self.secret)
-        res = requests.post("http://localhost:8080/auth/realms/master/protocol/openid-connect/token", data=body,
+        res = requests.post(self.token_endpoint, data=body,
                             headers=headers)
         return res.json()['access_token']
