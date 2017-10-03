@@ -28,7 +28,7 @@ class ResourceRegistrationTestCase(unittest.TestCase):
         server = ResourceServer(authenticator, self.client_utils.authz_endpoint)
         resource_id = server.register_resource(Resource("resource1", ["view"]))
 
-        res = self.client_utils.get_resource(resource_id)
+        resource = server.get_resource(resource_id)
 
-        self.assertEqual("resource1", res['name'])
-        self.assertEqual("view", res['scopes'][0]['name'])
+        self.assertEqual("resource1", resource.name)
+        self.assertEqual(["view"], resource.scopes)
