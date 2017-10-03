@@ -1,5 +1,7 @@
 # Python UMA
 
+[![Build Status](https://travis-ci.org/Trojan295/python_uma.svg?branch=master)](https://travis-ci.org/Trojan295/python_uma)
+
 Python UMA is a Python implemention of the UMA. It allows to create UMA compliant Resource Servers and Clients.
 
 ## Current features

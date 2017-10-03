@@ -1,8 +1,10 @@
 language: python
+python:
+  - "3.6"
 
 install:
-  - python3 setup.py install
-  - pip3 install pytest
+  - pip3 install pytest docker requests
   
 script:
-  - pytest
+  - (cd test/units; pytest)
+  - (cd test/integration; pytest -v)
