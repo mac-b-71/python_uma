@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, request
+import jwt
 
 import uma
 
@@ -12,12 +13,13 @@ def define_resource(resource_server, resource):
 
 
 def main():
-    token_endpoint = "http://myhightech.org:9000/auth/realms/python/protocol/openid-connect/token"
-    authz_endpoint = "http://myhightech.org:9000/auth/realms/python/authz/protection"
+    uma.UmaConfig.token_endpoint = "http://myhightech.org:9000/auth/realms/python/protocol/openid-connect/token"
+    uma.UmaConfig.authz_endpoint = "http://myhightech.org:9000/auth/realms/python/authz/protection"
 
-    authenticator = uma.ClientCredentialsAuthenticator(token_endpoint, "resource-server",
+    uma.UmaConfig.authenticator = uma.ClientCredentialsAuthenticator("resource-server",
                                                        "508efdf3-63c2-4f0e-9c81-7711673c2f99")
-    resource_server = uma.ResourceServer(authenticator, authz_endpoint)
+
+    resource_server = uma.ResourceServer()
     resource_control = uma.ResourceControl()
 
     database_resource = define_resource(resource_server, uma.Resource("database", ["view", "create", "delete"]))
@@ -25,18 +27,17 @@ def main():
     @app.route('/')
     def hello_world():
         constraint = uma.ResourceConstraint(database_resource[0], ["view"])
-        claims = {
-            "permissions": [
-                {
-                    "resource_set_id": database_resource[0],
-                    "scopes": ["create"]
-                }
-            ]
-        }
-        if resource_control.check(constraint, claims):
-            return 'Hello, World!'
-        else:
-            return "NO ACCESS!!!"
+
+        if "Authorization" not in request.headers:
+            return resource_control.get_ticket(constraint)
+
+        rpt = request.headers["Authorization"].replace("Bearer ", "")
+
+        claims = jwt.decode(rpt, verify=False)
+        if not resource_control.check(constraint, claims):
+            return resource_control.get_ticket(constraint)
+
+        return 'Hello, World!'
 
     app.run("0.0.0.0", debug=True)
 

@@ -1,34 +1,37 @@
 import logging
-import unittest
+import pytest
 
 from test.integration.helpers import Keycloak, ClientUtils
-from uma.authentication import ClientCredentialsAuthenticator
-from uma.resource import Resource
-from uma.server import ResourceServer
+from uma import ClientCredentialsAuthenticator, Resource, ResourceServer, UmaConfig
 
 logging.basicConfig(level=logging.INFO)
 
 
-class ResourceRegistrationTestCase(unittest.TestCase):
+class TestResourceRegistration:
+    @pytest.fixture
+    def client(self):
+        keycloak = Keycloak()
+        keycloak.start()
 
-    def setUp(self):
-        self.keycloak = Keycloak()
-        self.keycloak.start()
+        client_utils = ClientUtils()
+        token = keycloak.get_admin_token()
+        client_utils.register(token)
 
-        self.client_utils = ClientUtils()
-        token = self.keycloak.get_admin_token()
-        self.client_utils.register(token)
+        yield client_utils
 
-    def tearDown(self):
-        self.keycloak.stop()
+        keycloak.stop()
 
-    def test_library_should_be_able_to_create_new_resource(self):
-        authenticator = ClientCredentialsAuthenticator(self.client_utils.token_endpoint,
-                                                       self.client_utils.id, self.client_utils.secret)
-        server = ResourceServer(authenticator, self.client_utils.authz_endpoint)
+    @pytest.fixture
+    def config(self, client):
+        UmaConfig.token_endpoint = client.token_endpoint
+        UmaConfig.authz_endpoint = client.authz_endpoint
+        UmaConfig.authenticator = ClientCredentialsAuthenticator(client.id, client.secret)
+
+    def test_library_should_be_able_to_create_new_resource(self, config):
+        server = ResourceServer()
         resource_id = server.register_resource(Resource("resource1", ["view"]))
 
         resource = server.get_resource(resource_id)
 
-        self.assertEqual("resource1", resource.name)
-        self.assertEqual(["view"], resource.scopes)
+        assert resource.name == "resource1"
+        assert resource.scopes == ["view"]
